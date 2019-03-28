@@ -5,8 +5,9 @@ defmodule Authable.Authentication.Basic do
   """
 
   use Authable.RepoBase
-  import Authable.Config, only: [repo: 0]
+  import Authable.Config, only: [repo: 0, auth_accounts: 0]
   alias Authable.Utils.Crypt, as: CryptUtil
+  alias Authable.AuthAccounts
 
   @behaviour Authable.Authentication
 
@@ -59,7 +60,7 @@ defmodule Authable.Authentication.Basic do
   end
 
   defp authenticate_with_credentials(email, password) do
-    case repo().get_by(@resource_owner, email: email) do
+    case AuthAccounts.find_user_by_email(auth_accounts(), email) do
       nil ->
         {
           :error,
