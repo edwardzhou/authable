@@ -5,7 +5,7 @@ defmodule Authable.Authentication.Basic do
   """
 
   use Authable.RepoBase
-  import Authable.Config, only: [repo: 0, auth_accounts: 0]
+  import Authable.Config, only: [auth_accounts: 0]
   alias Authable.Utils.Crypt, as: CryptUtil
   alias Authable.AuthAccounts
 
