@@ -5,6 +5,8 @@ defmodule Authable.Config do
 
   alias Authable.Authorization.App, as: AppAuthorization
 
+  alias Authable.LocalAuthAccounts
+
   def repo, do: Application.get_env(:authable, :repo)
 
   def scopes, do: Application.get_env(:authable, :scopes)
@@ -27,5 +29,9 @@ defmodule Authable.Config do
 
   def app_authorization do
     Application.get_env(:authable, :app_authorization, AppAuthorization)
+  end
+
+  def auth_accounts do
+    Application.get_env(:authable, :auth_accounts, LocalAuthAccounts)
   end
 end
