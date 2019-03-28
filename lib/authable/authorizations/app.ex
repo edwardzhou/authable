@@ -4,8 +4,10 @@ defmodule Authable.Authorization.App do
   """
 
   use Authable.RepoBase
-  import Authable.Config, only: [repo: 0, scopes: 0]
+  import Authable.Config, only: [repo: 0, scopes: 0, auth_accounts: 0]
   import Ecto.Query, only: [from: 2]
+
+  alias Authable.AuthAccounts
 
   @doc """
   Authorizes client for resouce owner with given scopes
@@ -65,7 +67,7 @@ defmodule Authable.Authorization.App do
   defp find_client(
          %{"client_id" => client_id, "redirect_uri" => redirect_uri} = params
        ) do
-    case repo().get_by(@client, id: client_id, redirect_uri: redirect_uri) do
+    case AuthAccounts.find_client(auth_accounts(), client_id, redirect_uri) do
       nil ->
         {:error, %{invalid_client: "Client not found"}, :unprocessable_entity}
 
