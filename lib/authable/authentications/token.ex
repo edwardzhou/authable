@@ -6,8 +6,8 @@ defmodule Authable.Authentication.Token do
   'token store(Authable.Token)'.
   """
 
-  use Authable.RepoBase
-  import Authable.Config, only: [repo: 0]
+  # use Authable.RepoBase
+  import Authable.Config, only: [auth_accounts: 0]
   alias Authable.Authentication.Error, as: AuthenticationError
 
   @behaviour Authable.Authentication
@@ -30,23 +30,24 @@ defmodule Authable.Authentication.Token do
         "ct123456789"}, ["read", "write"])
   """
   def authenticate({token_name, token_value}, required_scopes) do
-    token_check(
-      repo().get_by(@token_store, value: token_value, name: token_name),
-      required_scopes
-    )
+    {token_name, token_value}
+    |> auth_accounts().find_token()
+    |> token_check(required_scopes)
   end
 
   defp token_check(nil, _),
     do: AuthenticationError.invalid_token("Token not found.")
 
   defp token_check(token, required_scopes) do
-    if @token_store.is_expired?(token) do
+    if auth_accounts().token_expired?(token) do
       AuthenticationError.invalid_token("Token expired.")
     else
       scopes = Authable.Utils.String.comma_split(token.details["scope"])
 
       if Authable.Utils.List.subset?(scopes, required_scopes) do
-        resource_owner_check(repo().get(@resource_owner, token.user_id))
+        token.user_id
+        |> auth_accounts().find_user()
+        |> resource_owner_check()
       else
         AuthenticationError.insufficient_scope(required_scopes)
       end

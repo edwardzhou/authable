@@ -5,9 +5,6 @@ defmodule Authable.Authorization.App do
 
   use Authable.RepoBase
   import Authable.Config, only: [repo: 0, scopes: 0, auth_accounts: 0]
-  import Ecto.Query, only: [from: 2]
-
-  alias Authable.AuthAccounts
 
   @doc """
   Authorizes client for resouce owner with given scopes
@@ -50,24 +47,13 @@ defmodule Authable.Authorization.App do
       %})
   """
   def revoke(%{"user" => user, "id" => id}) do
-    app = repo().get_by!(@app, id: id, user_id: user.id)
-    repo().delete!(app)
-
-    query =
-      from(
-        t in @token_store,
-        where:
-          t.user_id == ^app.user_id and
-            fragment("?->>'client_id' = ?", t.details, ^app.client_id)
-      )
-
-    repo().delete_all(query)
+    auth_accounts().revoke_app(id, user.id)
   end
 
   defp find_client(
          %{"client_id" => client_id, "redirect_uri" => redirect_uri} = params
        ) do
-    case AuthAccounts.find_client(auth_accounts(), client_id, redirect_uri) do
+    case auth_accounts().find_client(client_id, redirect_uri) do
       nil ->
         {:error, %{invalid_client: "Client not found"}, :unprocessable_entity}
 
@@ -84,39 +70,39 @@ defmodule Authable.Authorization.App do
          %{"user" => user, "client_id" => client_id, "scope" => scope} = params
        ) do
     app =
-      case repo().get_by(@app, user_id: user.id, client_id: client_id) do
-        nil -> create_app(params)
-        app -> update_app_scopes({app, scope})
+      case auth_accounts().find_app_by_client(user.id, client_id) do
+        nil -> auth_accounts().create_app(user, client_id, scope)
+        app -> auth_accounts().update_app_scopes(app, scope)
       end
 
     Map.put(params, "app", app)
   end
 
-  defp update_app_scopes({app, scope}) do
-    if app.scope != scope do
-      scope =
-        scope
-        |> Authable.Utils.String.comma_split()
-        |> Enum.concat(Authable.Utils.String.comma_split(app.scope))
-        |> Enum.uniq()
+  # defp update_app_scopes({app, scope}) do
+  #   if app.scope != scope do
+  #     scope =
+  #       scope
+  #       |> Authable.Utils.String.comma_split()
+  #       |> Enum.concat(Authable.Utils.String.comma_split(app.scope))
+  #       |> Enum.uniq()
 
-      scope = scopes() -- scopes() -- scope
-      repo().update!(@app.changeset(app, %{scope: Enum.join(scope, ",")}))
-    else
-      app
-    end
-  end
+  #     scope = scopes() -- scopes() -- scope
+  #     repo().update!(@app.changeset(app, %{scope: Enum.join(scope, ",")}))
+  #   else
+  #     app
+  #   end
+  # end
 
-  defp create_app(%{"user" => user, "client_id" => client_id, "scope" => scope}) do
-    changeset =
-      @app.changeset(%@app{}, %{
-        user_id: user.id,
-        client_id: client_id,
-        scope: scope
-      })
+  # defp create_app(%{"user" => user, "client_id" => client_id, "scope" => scope}) do
+  #   changeset =
+  #     @app.changeset(%@app{}, %{
+  #       user_id: user.id,
+  #       client_id: client_id,
+  #       scope: scope
+  #     })
 
-    repo().insert!(changeset)
-  end
+  #   repo().insert!(changeset)
+  # end
 
   defp create_token({:error, errors, status}) do
     {:error, errors, status}

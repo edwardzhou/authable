@@ -13,7 +13,11 @@ defmodule Authable.AuthAccounts do
 
   @callback find_client(client_id :: bitstring(), redirect_uri :: bitstring()) :: any() | nil
 
-  @callback find_token(token_name :: bitstring(), token_value :: bitstring()) :: any() | nil
+  @callback find_token({token_name :: bitstring(), token_value :: bitstring()}) :: any() | nil
+
+  @callback token_expired?(token :: any()) :: true | false
+
+  @callback revoke_app(app_id :: bitstring(), user_id :: bitstring()) :: nil
 
   def find_user(auth_accounts_impl, user_id) do
     auth_accounts_impl.find_user(user_id)
